@@ -1,0 +1,45 @@
+{
+  "name": "hydrajts",
+  "version": "1.0.0",
+  "description": "Multi-Headed Parallel ZKProof Execution for Midnight",
+  "author": "John Santi (bytewizard42i)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bytewizard42i/HydraJTS.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vinxi dev",
+    "dev:full": "./scripts/dev-setup.sh",
+    "dev:docker": "docker-compose up -d && bun run dev",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "build": "vinxi build",
+    "start": "vinxi start",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "lint": "eslint src",
+    "proof:health": "curl http://localhost:6300/health"
+  },
+  "dependencies": {
+    "@effect/platform": "^0.91.1",
+    "@effect/schema": "^0.75.5",
+    "@solidjs/meta": "^0.29.4",
+    "@solidjs/router": "^0.15.0",
+    "@solidjs/start": "^1.1.0",
+    "@types/node": "^24.5.2",
+    "@upstash/redis": "^1.35.4",
+    "effect": "^3.17.14",
+    "redis": "^5.8.2",
+    "solid-js": "^1.9.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
+    "vinxi": "^0.5.7"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

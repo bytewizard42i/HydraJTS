@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # Midnight Proof Server (Mock for development)
+  midnight-proof-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock-proof-server
+    image: midnight-proof-server:v4
+    container_name: hydrajts-proof-server
+    ports:
+      - "6300:6300"
+    environment:
+      - RUST_LOG=info
+      - MAX_CONCURRENT_PROOFS=10
+      - PROOF_TIMEOUT=30000
+      - ENABLE_METRICS=true
+    volumes:
+      - ./proof-artifacts:/app/artifacts
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6300/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hydrajts-network
+
+  # Redis for distributed queue (optional)
+  redis:
+    image: redis:alpine
+    container_name: hydrajts-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hydrajts-network
+
+  # # Optional: Proof Server UI (uncomment when UI is available)
+  # proof-server-ui:
+  #   image: nginx:alpine
+  #   container_name: hydrajts-proof-ui
+  #   ports:
+  #     - "8080:80"
+  #   volumes:
+  #     - ./proof-ui:/usr/share/nginx/html
+  #   depends_on:
+  #     - midnight-proof-server
+  #   networks:
+  #     - hydrajts-network
+
+volumes:
+  redis-data:
+  proof-artifacts:
+
+networks:
+  hydrajts-network:
+    driver: bridge

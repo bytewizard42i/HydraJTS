@@ -1,0 +1,62 @@
+# Netlify Configuration for HydraJTS
+# Multi-Headed Parallel ZKProof Execution for Midnight
+
+[build]
+  command = "bun run build"
+  publish = ".output/public"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # CORS headers for ZKP operations
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    # API specific headers
+    Content-Type = "application/json"
+    Cache-Control = "no-store, no-cache, must-revalidate"
+
+# Edge Functions (if needed for proof server proxy)
+[[edge_functions]]
+  path = "/api/proof/*"
+  function = "proof-proxy"
+
+[functions]
+  directory = "netlify/functions"
+  
+  # Configure function runtime
+  node_bundler = "esbuild"
+
+# Environment variables (add your actual values in Netlify dashboard)
+[context.production.environment]
+  MIDNIGHT_PROOF_SERVER_URL = "https://proof.midnight.network"
+  ENABLE_HYDRA_HEADS = "true"
+  MAX_CONCURRENT_HEADS = "4"
+
+[context.deploy-preview.environment]
+  MIDNIGHT_PROOF_SERVER_URL = "http://localhost:6300"
+  ENABLE_HYDRA_HEADS = "true"
+  MAX_CONCURRENT_HEADS = "2"
+
+[context.branch-deploy.environment]
+  MIDNIGHT_PROOF_SERVER_URL = "http://localhost:6300"
+  ENABLE_HYDRA_HEADS = "true"
+  MAX_CONCURRENT_HEADS = "2"
