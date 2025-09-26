@@ -1,22 +1,24 @@
 version: '3.8'
 
 services:
-  # Midnight Proof Server (Mock for development)
+  # Midnight Proof Server (Official Testnet)
   midnight-proof-server:
-    build:
-      context: .
-      dockerfile: Dockerfile.mock-proof-server
-    image: midnight-proof-server:v4
+    image: ghcr.io/midnight-ntwrk/midnight-proof-server:latest
     container_name: hydrajts-proof-server
     ports:
       - "6300:6300"
+      - "6301:6301"  # Metrics port
     environment:
       - RUST_LOG=info
+      - PROOF_SERVER_PORT=6300
+      - METRICS_PORT=6301
       - MAX_CONCURRENT_PROOFS=10
-      - PROOF_TIMEOUT=30000
+      - PROOF_TIMEOUT_MS=30000
       - ENABLE_METRICS=true
+      - NETWORK=testnet
     volumes:
-      - ./proof-artifacts:/app/artifacts
+      - ./proof-artifacts:/proof-artifacts
+      - ./circuits:/circuits
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:6300/health"]
       interval: 10s

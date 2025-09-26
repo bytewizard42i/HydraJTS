@@ -6,15 +6,20 @@ export const CompactProofRequest = Schema.Struct({
   circuitId: Schema.String,
   inputs: Schema.Record({ key: Schema.String, value: Schema.Unknown }),
   provingKey: Schema.optional(Schema.String),
-  verificationKey: Schema.optional(Schema.String)
+  verificationKey: Schema.optional(Schema.String),
+  witness: Schema.optional(Schema.Unknown), // Witness data for the proof
+  publicSignals: Schema.optional(Schema.Array(Schema.String)) // Public signals for verification
 })
 
 export const CompactProofResponse = Schema.Struct({
   proof: Schema.String,
   publicInputs: Schema.Array(Schema.String),
+  publicSignals: Schema.optionalWith({ default: () => [] })(Schema.Array(Schema.String)),
   verificationKey: Schema.String,
   success: Schema.Boolean,
-  error: Schema.optionalWith({ default: () => "" })(Schema.String)
+  error: Schema.optionalWith({ default: () => "" })(Schema.String),
+  proofId: Schema.optional(Schema.String), // Unique identifier for the generated proof
+  timestamp: Schema.optional(Schema.Number) // Timestamp of proof generation
 })
 
 export type CompactProofRequest = Schema.Schema.Type<typeof CompactProofRequest>
@@ -50,6 +55,11 @@ export class CompactClient {
     const self = this
     return pipe(
       Effect.gen(function* () {
+        // Log proof generation request
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[CompactClient] Generating proof for circuit: ${request.circuitId}`)
+        }
+        
         // Check cache for keys
         const cachedProvingKey = self.provingKeyCache.get(request.circuitId)
         const cachedVerificationKey = self.verificationKeyCache.get(request.circuitId)
@@ -62,19 +72,29 @@ export class CompactClient {
         
         // Make API request to proof server
         const response = yield* Effect.tryPromise({
-          try: () => self.callProofServer("/generate", enrichedRequest),
+          try: () => self.callProofServer("/api/v1/prove", enrichedRequest),
           catch: (error) => new Error(`Proof generation failed: ${error}`)
         }) as Effect.Effect<CompactProofResponse, Error, never>
+        
+        // Ensure response has timestamp
+        const responseWithTimestamp = {
+          ...response,
+          timestamp: response.timestamp || Date.now()
+        }
         
         // Cache keys for future use
         if (response.verificationKey) {
           self.verificationKeyCache.set(request.circuitId, response.verificationKey)
         }
         
-        return response
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[CompactClient] Proof generated successfully: ${responseWithTimestamp.proofId || 'unknown'}`)
+        }
+        
+        return responseWithTimestamp
       }),
       Effect.retry(this.retryPolicy()),
-      Effect.timeout(Duration.seconds(30))
+      Effect.timeout(Duration.seconds(Number(process.env.PROOF_TIMEOUT_MS) / 1000 || 30))
     ) as Effect.Effect<CompactProofResponse, Error, never>
   }
   
@@ -84,18 +104,20 @@ export class CompactClient {
   verifyProof(
     proof: string,
     publicInputs: string[],
-    verificationKey: string
+    verificationKey: string,
+    publicSignals?: string[]
   ): Effect.Effect<boolean, Error, never> {
     return pipe(
       Effect.tryPromise({
-        try: () => this.callProofServer("/verify", {
+        try: () => this.callProofServer("/api/v1/verify", {
           proof,
           publicInputs,
+          publicSignals: publicSignals || [],
           verificationKey
         }),
         catch: (error) => new Error(`Proof verification failed: ${error}`)
       }),
-      Effect.map((response: any) => response.valid === true),
+      Effect.map((response: any) => response.valid === true || response.result === true),
       Effect.retry(this.retryPolicy()),
       Effect.timeout(Duration.seconds(10))
     )
@@ -110,16 +132,17 @@ export class CompactClient {
   ): Effect.Effect<{ provingKey: string; verificationKey: string }, Error, never> {
     return pipe(
       Effect.tryPromise({
-        try: () => this.callProofServer("/compile", {
-          code: circuitCode,
-          circuitId
+        try: () => this.callProofServer("/api/v1/compile", {
+          circuit: circuitCode,
+          circuitId,
+          format: "compact" // Specify Compact format for Midnight
         }),
         catch: (error) => new Error(`Circuit compilation failed: ${error}`)
       }),
       Effect.tap((keys: any) => Effect.sync(() => {
         // Cache the compiled keys
-        this.provingKeyCache.set(circuitId, keys.provingKey)
-        this.verificationKeyCache.set(circuitId, keys.verificationKey)
+        this.provingKeyCache.set(circuitId, keys.provingKey || keys.proving_key)
+        this.verificationKeyCache.set(circuitId, keys.verificationKey || keys.verification_key)
       })),
       Effect.timeout(Duration.seconds(60))
     )
@@ -147,7 +170,16 @@ export class CompactClient {
     gates: number
   }, Error, never> {
     return Effect.tryPromise({
-      try: () => this.callProofServer(`/circuits/${circuitId}`, {}),
+      try: async () => {
+        const response = await fetch(`${this.baseUrl}/api/v1/circuits/${circuitId}`, {
+          method: 'GET',
+          headers: this.apiKey ? { 'Authorization': `Bearer ${this.apiKey}` } : {}
+        })
+        if (!response.ok) {
+          throw new Error(`Circuit info request failed: ${response.status}`)
+        }
+        return response.json()
+      },
       catch: (error) => new Error(`Failed to get circuit info: ${error}`)
     })
   }
@@ -162,7 +194,11 @@ export class CompactClient {
           const response = await fetch(`${this.baseUrl}/health`)
           if (response.ok) {
             const data = await response.json()
-            console.log('[CompactClient] Health check passed:', data)
+            console.log('[CompactClient] Health check passed:', {
+              status: data.status || 'healthy',
+              version: data.version || 'unknown',
+              network: data.network || process.env.MIDNIGHT_NETWORK || 'testnet'
+            })
             return true
           }
           return false
@@ -181,14 +217,21 @@ export class CompactClient {
    */
   private async callProofServer(endpoint: string, data: any): Promise<any> {
     const headers: Record<string, string> = {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "X-Network": process.env.MIDNIGHT_NETWORK || "testnet"
     }
     
     if (this.apiKey) {
       headers["Authorization"] = `Bearer ${this.apiKey}`
     }
     
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const url = `${this.baseUrl}${endpoint}`
+    
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[CompactClient] API Request: ${endpoint}`)
+    }
+    
+    const response = await fetch(url, {
       method: "POST",
       headers,
       body: JSON.stringify(data)
