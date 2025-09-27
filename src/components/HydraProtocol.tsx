@@ -1,8 +1,12 @@
-import { createSignal, For, Show, onMount, createEffect } from "solid-js"
-import { hydraInstances, InstanceManager } from "../hydra/instanceManager"
-import { ProofServerStatus } from "./ProofServerStatus"
-import { ProtocolSettings, useProtocolSettings } from "./ProtocolSettings"
-import { ProofProgressIndicator, type ActiveProof } from "./ProofProgressIndicator"
+import { createSignal, createEffect, onCleanup, Show, For } from "solid-js"
+import { instanceManager } from "../utils/instanceManager"
+import { Effect } from "effect"
+import type { ProofResult } from "../types/proof"
+import { useSettings } from "../contexts/SettingsContext"
+import ProtocolSettings from "./ProtocolSettings"
+import ProofProgressIndicator from "./ProofProgressIndicator"
+import ProofServerStatus from "./ProofServerStatus"
+import CreepyOldWayButton from "./CreepyOldWayButton"
 
 interface ProofJob {
   id: string
@@ -390,12 +394,8 @@ export function HydraProtocol() {
         </button>
       </div>
       
-      {/* Comparison Link */}
-      <div class="comparison-section">
-        <a href="/old-way" class="comparison-link">
-          ❌ See how painful the OLD way was (blocking UI demo)
-        </a>
-      </div>
+      {/* Creepy Old Way Button */}
+      <CreepyOldWayButton />
       
       {/* Jobs/Proofs List */}
       <div class="jobs-section">
@@ -600,28 +600,6 @@ export function HydraProtocol() {
         .btn-reset {
           background: #ef4444;
           color: white;
-        }
-        
-        .comparison-section {
-          text-align: center;
-          margin: 2rem 0;
-        }
-        
-        .comparison-link {
-          display: inline-block;
-          padding: 1rem 2rem;
-          background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-          color: white;
-          text-decoration: none;
-          border-radius: 12px;
-          font-weight: 600;
-          transition: all 0.3s;
-          box-shadow: 0 4px 6px rgba(220, 38, 38, 0.2);
-        }
-        
-        .comparison-link:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 12px rgba(220, 38, 38, 0.3);
         }
         
         button:hover:not(:disabled) {
