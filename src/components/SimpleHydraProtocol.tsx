@@ -100,7 +100,7 @@ export default function SimpleHydraProtocol() {
       />
       
       <div class="protocol-header">
-        <h1>HydraJTS PROTOCOL</h1>
+        <h1 style="text-transform: none !important;">HydraJTS PROTOCOL</h1>
         <p>Multi-Instance Parallel ZK-Proof Execution</p>
         <div class="protocol-description">
           <p>
@@ -242,6 +242,7 @@ export default function SimpleHydraProtocol() {
             2px 2px 4px rgba(0, 0, 0, 0.3),
             4px 4px 8px rgba(0, 0, 0, 0.2);
           filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.25));
+          text-transform: none !important;
         }
         
         .protocol-header h1::before {
