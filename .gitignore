@@ -9,6 +9,9 @@ app.config.timestamp_*.js
 # Environment
 .env
 .env*.local
+.env.testnet
+.env.production
+*.env
 
 # dependencies
 /node_modules

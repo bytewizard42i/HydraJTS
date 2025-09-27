@@ -1,0 +1,229 @@
+HydraJTS – Recommendations & Implementation Plan for Cassie (Verbose)
+====================================================================
+
+Author: Alice
+Date: 2025-09-27
+
+Overview
+--------
+This document compiles actionable feedback and implementation guidance for the HydraJTS repository with a focus on the Proof Resolution Layer (protocol <-> proof server <-> GUI), developer experience, reliability, testing, and documentation. The goal is to ensure deterministic behavior under load, crisp UI feedback, and an execution plan Cassie can implement without ambiguity.
+
+--------------------------------------------------------------------
+1) Terminology & Architecture
+--------------------------------------------------------------------
+• Adopt the canonical term: “Proof Resolution Layer”
+  - Definition: The cohesive module that accepts proof tasks from the GUI, orchestrates concurrency and backpressure, calls the proof server (Compact), verifies outcomes when applicable, and returns status updates and results to the UI.
+  - Apply consistently across code and docs:
+    - Code: src/proofs/*, src/components/*, reference names in comments and function docs.
+    - Docs: README.md, ROADMAP.md, QUICK_START.md, DEV_SETUP.md.
+
+• Canonical State Machine for a Proof Task
+  States: queued → proving → verifying → resolved | failed | cancelled
+  - queued: accepted into the system, awaiting worker slot
+  - proving: Compact proof generation in progress
+  - verifying: quick client-side verify or server verify step before finalization (optional per circuit/server behavior)
+  - resolved: success; proof and any artifacts available
+  - failed: terminal failure with structured error
+  - cancelled: user/system-triggered abort
+
+• Event Contract
+  onStateChange({ id, state, progress?, error?, correlationId, startedAt, endedAt })
+  - id: string (task id assigned by queue)
+  - state: enum (as above)
+  - progress: number 0..1 (when available)
+  - error: { code, message, details? } (structured; see §4)
+  - correlationId: string (same id propagated to server via header)
+  - timestamps: for observability and UX
+
+--------------------------------------------------------------------
+2) Concurrency, Backpressure, and Cancellation
+--------------------------------------------------------------------
+• Concurrency Semaphore
+  - Add a configurable MAX_CONCURRENCY (default 3–5). Acquire/release per task.
+  - Expose current in-flight count to UI (for overlays/indicators).
+
+• Backpressure Policy
+  - Choose one: (a) bounded FIFO queue, (b) bounded priority queue, (c) drop oldest background task when queue full.
+  - Implement priority levels: UI-critical > background (verification or precomputation).
+
+• Cancellation (AbortController)
+  - Every task receives an AbortController. Wire cancel button in UI to controller.
+  - Ensure client fetch calls (compactClient) are passed AbortSignal; clean up task state and free semaphore on abort.
+  - Emit cancelled with a user-friendly message and guidance to retry.
+
+--------------------------------------------------------------------
+3) Proof Client (src/proofs/compactClient.ts)
+--------------------------------------------------------------------
+• Base URL & Auth
+  - Use MIDNIGHT_PROOF_SERVER_URL and MIDNIGHT_API_KEY (document both in .env.example).
+
+• Timeouts
+  - Implement per-request timeouts (default 30000ms). Use AbortController with setTimeout. Make timeout configurable via settings & env.
+
+• Retries with Exponential Backoff + Jitter
+  - Retry on network errors and 5xx (but not on 4xx except 429 with Retry-After, if present).
+  - Backoff: e.g., base 500ms, factor 2, jitter ±20%, capped at ~8–10s.
+
+• Structured Errors
+  - Normalize to ProofClientError with code: "TIMEOUT" | "NETWORK" | "SERVER" | "INVALID" | "RATE_LIMITED"
+  - message: human-readable; details: original status/body if safe.
+  - Always include correlationId.
+
+• Correlation IDs
+  - Generate a UUID v4 per task; pass as header `x-correlation-id`; log in client and surface in UI.
+
+• Key Caching
+  - Keep the current proving/verification key cache. Add expiry or explicit invalidation when server signals key rotation.
+
+--------------------------------------------------------------------
+4) Proof Queue / Resolution Service (src/proofs/proofQueue.ts + New Service)
+--------------------------------------------------------------------
+• Create ProofResolutionService
+  - Composition layer that uses the queue + compactClient, publishes typed events to UI, manages lifecycle (timestamps, progress, metrics).
+  - Provides: enqueue(), cancel(taskId), onStateChange(subscriber), getSnapshot().
+
+• Priority, Metrics, and Snapshots
+  - Track: totalSubmitted, totalResolved, totalFailed, avgLatency, p95Latency.
+  - getSnapshot() returns state of all active/queued tasks for debug panes.
+
+• Backpressure & Drop Policies
+  - Export queue stats and emit warnings when queue is saturated.
+  - Optional: reject new tasks with actionable error “System is busy; try again shortly.”
+
+--------------------------------------------------------------------
+5) UI Components
+--------------------------------------------------------------------
+• ProofProgressIndicator.tsx
+  - Render explicit states: queued, proving (with % if available), verifying, resolved, failed, cancelled.
+  - Add Cancel button (disabled when terminal state reached).
+  - Show correlationId with copy button.
+  - On failure, render normalized error.code and a brief remediation hint.
+
+• ProofServerStatus.tsx
+  - Poll /health every 10–15s; store status, latency, last-ok timestamp.
+  - Render small status pill in header; expand to show details (URL, latency history).
+
+• ProtocolSettings.tsx
+  - Editable fields: proof server URL, API key (masked), max concurrency, per-request timeout, retry attempts, diagnostics toggle.
+  - Persist to localStorage (or a settings context/provider).
+  - Broadcast settings changes to queue/client live.
+
+• UX Notes
+  - Keep UI responsive: lazy render heavy components; avoid blocking the main thread.
+  - Provide helpful empty-state and loading copy; surface “System busy” when queue saturated.
+
+--------------------------------------------------------------------
+6) Documentation & Config Hygiene
+--------------------------------------------------------------------
+• .env.example
+  - Provide: MIDNIGHT_PROOF_SERVER_URL, MIDNIGHT_API_KEY, MAX_CONCURRENCY, REQUEST_TIMEOUT_MS, RETRY_MAX_ATTEMPTS, DIAGNOSTICS.
+  - Remove committed .env.testnet; add to .gitignore; document population in QUICK_START.
+
+• README.md
+  - Add “Stack” box (Runtime, Framework, Build, Test).
+  - Minimal code snippet: enqueue a proof, subscribe to events, display UI state.
+  - Link to QUICK_START for 90-second run.
+
+• QUICK_START.md
+  - One-page flow: cp .env.example → install → dev → open UI → click “Run Sample Proof”
+  - Troubleshooting footer linking to TROUBLESHOOTING.md
+
+• DEV_SETUP.md / MIDNIGHT_SETUP.md
+  - Pin versions: Node (>=22.15.1), pnpm/yarn, Docker, Proof Server vX.Y.Z.
+  - Health-check commands and expected outputs.
+  - Ports: standardize on 6300 (document once, reference everywhere).
+
+• ROADMAP.md
+  - Add milestones with acceptance criteria, owners, and risks.
+  - Example:
+    M1 Proof Resolution MVP (Owner: Cassie, DUE: YYYY-MM-DD)
+      - Submit task → deterministic state transitions
+      - Timeout & retry implemented
+      - Cancel works; UI shows status and correlationId
+    M2 Concurrency & Backpressure
+      - Configurable MAX_CONCURRENCY and bounded queue
+      - UI shows “N active” + queue stats
+    M3 Resilience & Observability
+      - Health checks, metrics panel, structured errors, key-cache warmup
+
+--------------------------------------------------------------------
+7) Reliability, Security, and Privacy
+--------------------------------------------------------------------
+• Reliability
+  - Timeouts, retries, cancellation (see above).
+  - Key-cache warmup and invalidation.
+  - Backpressure + saturation messaging.
+
+• Security/Privacy
+  - Do not log witness material or secrets.
+  - Replace .env.testnet with .env.example.
+  - CORS: document if the proof server is cross-origin; set allowed origins accordingly.
+
+--------------------------------------------------------------------
+8) Testing Strategy
+--------------------------------------------------------------------
+• Unit Tests (Vitest)
+  - compactClient: success, timeout, 5xx retry, 4xx no-retry (except 429), network error.
+  - proofQueue: priority ordering, saturation, cancel frees slot.
+
+• Integration Tests (MSW or mock-proof-server.js)
+  - Long-running proof; UI remains responsive.
+  - Burst of 5xx followed by success; verify backoff.
+  - User cancellation mid-flight.
+
+• UI Snapshot/Interaction
+  - ProofProgressIndicator: each explicit state.
+  - ProtocolSettings: persist & live-apply settings.
+
+--------------------------------------------------------------------
+9) CI/CD & Dev Tooling
+--------------------------------------------------------------------
+• package.json scripts
+  - "lint": eslint .
+  - "typecheck": tsc -p tsconfig.json --noEmit
+  - "test": vitest run
+  - "format": prettier -w .
+  - "build": vinxi build
+
+• GitHub Actions
+  - Workflow: lint → typecheck → test → build (cache node_modules).
+  - Add status badge to README.
+
+• Tooling
+  - Add .nvmrc and "engines" in package.json.
+  - Pre-commit hooks via Husky (lint & typecheck).
+
+--------------------------------------------------------------------
+10) Concrete TODO Checklist for Cassie
+--------------------------------------------------------------------
+[ ] Introduce .env.example and update README/QUICK_START for env usage
+[ ] Implement per-request timeout + AbortController in compactClient
+[ ] Implement exponential backoff retry for 5xx/network errors
+[ ] Normalize errors into ProofClientError with code + correlationId
+[ ] Generate and propagate x-correlation-id headers to the server
+[ ] Add ProofResolutionService (compose queue + client, typed events)
+[ ] Add MAX_CONCURRENCY + bounded queue + priority levels to proofQueue
+[ ] Wire cancel task from UI to AbortController; free semaphore
+[ ] Finalize ProofProgressIndicator states + Cancel + correlationId UI
+[ ] Add ProofServerStatus polling /health with latency pill + details
+[ ] Expand ProtocolSettings (URL, API key, concurrency, timeout, retries)
+[ ] Add key-cache warmup + invalidation strategy
+[ ] Add unit tests for client and queue; integration tests with mock server
+[ ] Add CI (lint/type/test/build) and status badge
+[ ] Replace committed .envs with .env.example; add secrets to .gitignore
+[ ] Update ROADMAP with acceptance criteria, owners, risk notes
+
+--------------------------------------------------------------------
+11) Optional Enhancements
+--------------------------------------------------------------------
+• Metrics & Observability
+  - Lightweight metrics collector (avg/p95 latency; success/failure counters).
+  - Simple debug pane to inspect live tasks (id, state, startedAt, correlationId).
+
+• Progressive Disclosure in UI
+  - Compact header chips for status; expandable panels for details and logs.
+
+• Developer Preview Mode (Diagnostics)
+  - Toggle to print detailed state transitions and server responses to console with correlationId.
+
+End of document.
