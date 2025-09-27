@@ -291,13 +291,18 @@ export function HydraProtocol() {
     setJobs(prev => prev.filter(j => j.status !== "completed"))
   }
   
+  const clearAll = () => {
+    setJobs([])
+    setActiveProofs([])
+  }
+  
   return (
     <div class="hydra-protocol">
       {/* Settings Component */}
       <ProtocolSettings />
       
       <div class="protocol-header">
-        <h1>🐙 HydraJTS Protocol</h1>
+        <h1>HydraJTS Protocol</h1>
         <p>Multi-Instance Parallel ZK-Proof Execution</p>
         <div class="protocol-description">
           <p>
@@ -380,6 +385,9 @@ export function HydraProtocol() {
         <button onClick={clearCompleted} class="btn-secondary">
           🧹 Clear Completed
         </button>
+        <button onClick={clearAll} class="btn-reset">
+          🔄 Reset All
+        </button>
       </div>
       
       {/* Jobs/Proofs List */}
@@ -430,11 +438,29 @@ export function HydraProtocol() {
         }
         
         .protocol-header h1 {
-          font-size: 3rem;
+          font-size: 3.5rem;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           margin-bottom: 0.5rem;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        
+        .protocol-header h1::before {
+          content: '🦑';
+          display: inline-block;
+          transform: scaleX(-1) rotate(15deg);
+          font-size: 1.2em;
+          animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: scaleX(-1) rotate(15deg) translateY(0px); }
+          50% { transform: scaleX(-1) rotate(15deg) translateY(-10px); }
         }
         
         .protocol-description {

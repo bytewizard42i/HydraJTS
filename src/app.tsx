@@ -7,9 +7,9 @@ import "./app.css";
 export default function App() {
   return (
     <Router
-      root={props => (
+      root={(props) => (
         <MetaProvider>
-          <Title>SolidStart - Basic</Title>
+          <Title>HydraJTS - Multi-Instance ZKProof Execution</Title>
           <a href="/">Index</a>
           <a href="/about">About</a>
           <Suspense>{props.children}</Suspense>

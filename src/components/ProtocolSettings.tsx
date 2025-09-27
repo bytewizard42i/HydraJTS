@@ -171,11 +171,10 @@ export function ProtocolSettings() {
       
       {/* Settings Modal */}
       <Show when={isOpen()}>
-        <div class="settings-overlay" onClick={() => setIsOpen(false)}>
-          <div class="settings-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
+        <div class="settings-overlay" onClick={(e) => e.target === e.currentTarget && setIsOpen(false)}>
+          <div class="settings-modal">
             <div class="settings-header">
-              <h2>🎛️ Proof Resolution Settings</h2>
+              <h2>⚙️ HydraJTS Settings</h2>
               <button class="close-btn" onClick={() => setIsOpen(false)}>✕</button>
             </div>
             

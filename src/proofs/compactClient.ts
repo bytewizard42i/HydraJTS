@@ -48,33 +48,31 @@ export class CompactClient {
     }
   }
   
+  /**
    * Generate a Zero-Knowledge Proof using Compact
    */
-  generateProof(
-    circuitId: string, 
-    inputs: any,
-    options?: {
-      correlationId?: string
-      signal?: AbortSignal
-    }
-  ): Effect.Effect<CompactProofResponse, Error, never> {
+  generateProof(request: CompactProofRequest): Effect.Effect<CompactProofResponse, Error, never> {
     const self = this
     return pipe(
-      async generateProof(
-    circuitId: string, 
-    inputs: any,
-    options?: {
-      correlationId?: string
-      signal?: AbortSignal
-    }
-  ): Promise<ProofResult> {
-    // Add correlation ID header if provided
-    const headers: any = {
-      'Content-Type': 'application/json'
-    }
-    
-    if (options?.correlationId) {
-      headers['x-correlation-id'] = options.correlationId
+      Effect.gen(function* () {
+        // Log proof generation request
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[CompactClient] Generating proof for circuit: ${request.circuitId}`)
+        }
+        
+        // Check cache for keys
+        const cachedProvingKey = self.provingKeyCache.get(request.circuitId)
+        const cachedVerificationKey = self.verificationKeyCache.get(request.circuitId)
+        
+        const enrichedRequest = {
+          ...request,
+          provingKey: request.provingKey || cachedProvingKey || "",
+          verificationKey: request.verificationKey || cachedVerificationKey || ""
+        }
+        
+        // Make API request to proof server
+        const response = yield* Effect.tryPromise({
+          try: () => self.callProofServer("/api/v1/prove", enrichedRequest),
           catch: (error) => new Error(`Proof generation failed: ${error}`)
         }) as Effect.Effect<CompactProofResponse, Error, never>
         

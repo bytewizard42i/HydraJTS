@@ -1,8 +1,8 @@
-# HydraJTS 🐙
+# 🦑 HydraJTS
 
-**Multi-Headed Parallel ZKProof Execution for Midnight**
+> Multi-headed parallel zero-knowledge proof execution for the Midnight blockchain ecosystem
 
-> **🚀 [Quick Start Guide](./QUICK_START.md)** - Get running in 60 seconds!  
+**🚀 [Quick Start Guide](./QUICK_START.md)** - Get running in 60 seconds!  
 > **🔧 [Developer Setup](./DEV_SETUP.md)** - Detailed setup instructions
 
 [![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-orange)](https://bun.sh)
