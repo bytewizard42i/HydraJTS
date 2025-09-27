@@ -1,11 +1,11 @@
 import { Title } from "@solidjs/meta";
-import { HydraDemo } from "~/components/HydraDemo";
+import { HydraProtocol } from "~/components/HydraProtocol";
 
 export default function Home() {
   return (
     <main>
-      <Title>HydraJTS - Multi-Headed ZKProof Execution</Title>
-      <HydraDemo />
+      <Title>HydraJTS - Multi-Instance Parallel ZK-Proof Execution</Title>
+      <HydraProtocol />
     </main>
   );
 }

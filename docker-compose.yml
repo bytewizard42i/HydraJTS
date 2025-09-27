@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  # Midnight Proof Server (Official Testnet)
+  # Midnight Proof Server (Mock for Development)
   midnight-proof-server:
-    image: ghcr.io/midnight-ntwrk/midnight-proof-server:latest
+    image: mock-proof-server:latest
     container_name: hydrajts-proof-server
     ports:
       - "6300:6300"
