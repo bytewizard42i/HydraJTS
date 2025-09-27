@@ -259,7 +259,7 @@ See [LICENSE](LICENSE) for full license text.
 ## Contact
 
 - **Author**: John Santi (bytewizard42i)
-- **Email**: hariamoor@proton.me
+- **Email**: johnny5i@proton.me
 - **GitHub**: [@bytewizard42i](https://github.com/bytewizard42i)
 - **Project**: [HydraJTS](https://github.com/bytewizard42i/HydraJTS)
 

@@ -250,7 +250,7 @@ Access the monitoring UI at http://localhost:8080 for:
 
 - **Issues**: [GitHub Issues](https://github.com/bytewizard42i/HydraJTS/issues)
 - **Author**: John Santi (bytewizard42i)
-- **Email**: hariamoor@proton.me
+- **Email**: johnny5i@proton.me
 
 ---
 

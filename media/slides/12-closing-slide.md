@@ -20,7 +20,7 @@
 │    🔗 github.com/bytewizard42i/HydraJTS                          │
 │                                                                     │
 │    Contact:                                                        │
-│    📧 John Santi (JS) - hariamoor@proton.me                      │
+│    📧 John Santi (JS) - johnny5i@proton.me                       │
 │    🤝 Roberto Cerrud - Partner & Tester                          │
 │                                                                     │
 │    #ZKProofs #Midnight #HydraJTS #NoMoreBlocking                  │
