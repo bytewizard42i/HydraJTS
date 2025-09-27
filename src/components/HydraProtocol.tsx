@@ -390,6 +390,13 @@ export function HydraProtocol() {
         </button>
       </div>
       
+      {/* Comparison Link */}
+      <div class="comparison-section">
+        <a href="/old-way" class="comparison-link">
+          ❌ See how painful the OLD way was (blocking UI demo)
+        </a>
+      </div>
+      
       {/* Jobs/Proofs List */}
       <div class="jobs-section">
         <h2>Proof Jobs</h2>
@@ -590,9 +597,31 @@ export function HydraProtocol() {
           color: white;
         }
         
-        .btn-secondary {
-          background: #e2e8f0;
-          color: #4a5568;
+        .btn-reset {
+          background: #ef4444;
+          color: white;
+        }
+        
+        .comparison-section {
+          text-align: center;
+          margin: 2rem 0;
+        }
+        
+        .comparison-link {
+          display: inline-block;
+          padding: 1rem 2rem;
+          background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+          color: white;
+          text-decoration: none;
+          border-radius: 12px;
+          font-weight: 600;
+          transition: all 0.3s;
+          box-shadow: 0 4px 6px rgba(220, 38, 38, 0.2);
+        }
+        
+        .comparison-link:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 12px rgba(220, 38, 38, 0.3);
         }
         
         button:hover:not(:disabled) {
