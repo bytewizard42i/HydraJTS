@@ -216,7 +216,7 @@ describe("HydraJTS Core Tests", () => {
 
     beforeEach(() => {
       client = new CompactClient({
-        baseUrl: "http://localhost:6300"
+        baseUrl: "http://192.168.50.209:6300/"
       })
     })
 

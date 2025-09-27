@@ -39,7 +39,7 @@ export class CompactClient {
     apiKey?: string
   }) {
     // Use environment variable or default to local Docker instance
-    this.baseUrl = config.baseUrl ?? process.env.MIDNIGHT_PROOF_SERVER_URL ?? "http://localhost:6300"
+    this.baseUrl = config.baseUrl ?? process.env.MIDNIGHT_PROOF_SERVER_URL ?? "http://192.168.50.209:6300/"
     this.apiKey = config.apiKey ?? process.env.MIDNIGHT_API_KEY
     
     // Log connection info in development

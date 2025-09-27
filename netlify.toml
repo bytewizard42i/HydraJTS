@@ -52,11 +52,11 @@
   MAX_CONCURRENT_HEADS = "4"
 
 [context.deploy-preview.environment]
-  MIDNIGHT_PROOF_SERVER_URL = "http://localhost:6300"
+  MIDNIGHT_PROOF_SERVER_URL = "http://192.168.50.209:6300/"
   ENABLE_HYDRA_HEADS = "true"
   MAX_CONCURRENT_HEADS = "2"
 
 [context.branch-deploy.environment]
-  MIDNIGHT_PROOF_SERVER_URL = "http://localhost:6300"
+  MIDNIGHT_PROOF_SERVER_URL = "http://192.168.50.209:6300/"
   ENABLE_HYDRA_HEADS = "true"
   MAX_CONCURRENT_HEADS = "2"

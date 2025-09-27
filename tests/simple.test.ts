@@ -26,7 +26,7 @@ describe("HydraJTS Basic Tests", () => {
   
   it("should connect to proof server", async () => {
     try {
-      const response = await fetch('http://localhost:6300/health')
+      const response = await fetch('http://192.168.50.209:6300/health')
       const data = await response.json()
       
       expect(response.ok).toBe(true)

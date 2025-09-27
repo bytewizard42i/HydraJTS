@@ -26,7 +26,7 @@ const main = Effect.gen(function* () {
   yield* Console.log("=" . repeat(60))
   
   const client = new CompactClient({
-    baseUrl: process.env.MIDNIGHT_PROOF_SERVER_URL || "http://localhost:6300",
+    baseUrl: process.env.MIDNIGHT_PROOF_SERVER_URL || "http://192.168.50.209:6300/",
     apiKey: process.env.MIDNIGHT_API_KEY
   })
   
@@ -108,7 +108,7 @@ const main = Effect.gen(function* () {
   yield* Console.log("\n" + "=" . repeat(60))
   yield* Console.log("🎉 Connection test complete!")
   yield* Console.log("\n📝 Summary:")
-  yield* Console.log("   - Server URL: " + (process.env.MIDNIGHT_PROOF_SERVER_URL || "http://localhost:6300"))
+  yield* Console.log("   - Server URL: " + (process.env.MIDNIGHT_PROOF_SERVER_URL || "http://192.168.50.209:6300/"))
   yield* Console.log("   - Network: " + (process.env.MIDNIGHT_NETWORK || "testnet"))
   yield* Console.log("   - API Key: " + (process.env.MIDNIGHT_API_KEY ? "Configured" : "Not configured"))
 })

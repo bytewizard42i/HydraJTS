@@ -13,7 +13,7 @@ interface ServerStatus {
 export function ProofServerStatus() {
   const [status, setStatus] = createSignal<ServerStatus>({
     connected: false,
-    serverUrl: "http://localhost:6300",
+    serverUrl: "http://192.168.50.209:6300/",
     lastChecked: new Date()
   })
   const [isChecking, setIsChecking] = createSignal(false)

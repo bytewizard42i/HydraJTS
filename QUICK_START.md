@@ -19,7 +19,7 @@ bun run dev:full
 ```
 
 **That's it!** 🎉 Everything is now running:
-- ✅ Mock Proof Server at http://localhost:6300
+- ✅ Mock Proof Server at http://192.168.50.209:6300/
 - ✅ Redis Queue at redis://localhost:6379
 - ✅ HydraJTS UI at http://localhost:3000
 
@@ -39,7 +39,7 @@ The `dev:full` command automatically:
 ### 1. Check Services Health
 ```bash
 # Proof server health
-curl http://localhost:6300/health
+curl http://192.168.50.209:6300/health
 
 # View Docker status
 docker-compose ps
@@ -56,7 +56,7 @@ bun test simple.test.ts
 
 ### 3. Generate a Test Proof
 ```bash
-curl -X POST http://localhost:6300/generate \
+curl -X POST http://192.168.50.209:6300/generate \
   -H "Content-Type: application/json" \
   -d '{"circuitId": "test", "inputs": {"value": 42}}'
 ```
@@ -100,7 +100,7 @@ HydraJTS/
 ### Environment Variables
 Create `.env.local`:
 ```env
-MIDNIGHT_PROOF_SERVER_URL=http://localhost:6300
+MIDNIGHT_PROOF_SERVER_URL=http://192.168.50.209:6300/
 REDIS_URL=redis://localhost:6379
 MAX_CONCURRENT_HEADS=4
 LOG_LEVEL=debug

@@ -22,7 +22,7 @@
     "test": "bun test",
     "test:watch": "bun test --watch",
     "lint": "eslint src",
-    "proof:health": "curl http://localhost:6300/health"
+    "proof:health": "curl http://192.168.50.209:6300/health"
   },
   "dependencies": {
     "@effect/platform": "^0.91.1",
