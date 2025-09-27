@@ -238,6 +238,10 @@ export default function SimpleHydraProtocol() {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
+          text-shadow: 
+            2px 2px 4px rgba(0, 0, 0, 0.3),
+            4px 4px 8px rgba(0, 0, 0, 0.2);
+          filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.25));
         }
         
         .protocol-header h1::before {

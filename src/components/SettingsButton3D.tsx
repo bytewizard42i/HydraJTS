@@ -45,7 +45,7 @@ export default function SettingsButton3D(props: SettingsButton3DProps) {
       <style>{`
         .settings-button-3d {
           position: fixed;
-          top: 2rem;
+          top: 4rem;
           left: 2rem;
           z-index: 1000;
           padding: 0;
@@ -139,7 +139,7 @@ export default function SettingsButton3D(props: SettingsButton3DProps) {
         /* Responsive adjustments */
         @media (max-width: 768px) {
           .settings-button-3d {
-            top: 1rem;
+            top: 3rem;
             left: 1rem;
           }
           
