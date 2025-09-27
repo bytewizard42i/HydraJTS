@@ -1,0 +1,17 @@
+PLACEHOLDER FOR OMINOUS SOUND
+
+To activate the creepy hover sound:
+1. Download an ominous sound effect (MP3 format)
+2. Name it: ominous-hover.mp3
+3. Place it in this directory
+4. The sound will automatically play on hover
+
+Suggested sound sources:
+- https://freesound.org (search: "horror ambient", "metal creak")
+- https://www.zapsplat.com (Horror category)
+- https://soundbible.com (Scary sounds)
+
+Sound characteristics:
+- Duration: 1-2 seconds
+- Type: Low rumble or metal groan
+- Volume: Subtle (0.3 volume in code)

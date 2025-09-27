@@ -2,12 +2,30 @@
  * Creepy Old Way Button - A dingy, glitchy button that takes you to the dark past
  */
 
-import { createSignal, onCleanup } from "solid-js"
+import { createSignal, onCleanup, onMount } from "solid-js"
 
 export default function CreepyOldWayButton() {
   const [isHovering, setIsHovering] = createSignal(false)
   const [isClicking, setIsClicking] = createSignal(false)
   const [glitchText, setGlitchText] = createSignal("⚠️ Experience the OLD WAY ⚠️")
+  
+  let audioElement: HTMLAudioElement | null = null
+  
+  onMount(() => {
+    // Preload the ominous sound
+    audioElement = new Audio('/media/sounds/ominous-hover.mp3')
+    audioElement.volume = 0.3
+    audioElement.preload = 'auto'
+  })
+  
+  const playOminousSound = () => {
+    if (audioElement) {
+      audioElement.currentTime = 0
+      audioElement.play().catch(() => {
+        // Ignore if autoplay is blocked
+      })
+    }
+  }
   
   let glitchInterval: any
   
@@ -73,6 +91,7 @@ export default function CreepyOldWayButton() {
         onMouseEnter={() => {
           setIsHovering(true)
           startGlitch()
+          playOminousSound()
         }}
         onMouseLeave={() => {
           setIsHovering(false)
@@ -106,6 +125,41 @@ export default function CreepyOldWayButton() {
           box-shadow: 
             inset 0 0 50px rgba(0, 0, 0, 0.8),
             0 0 20px rgba(139, 69, 19, 0.3);
+          
+          /* Eroded edges using clip-path */
+          clip-path: polygon(
+            3% 8%, 15% 3%, 30% 7%, 45% 2%, 60% 6%, 75% 3%, 90% 8%, 97% 4%,
+            99% 15%, 96% 30%, 99% 45%, 95% 60%, 98% 75%, 94% 88%, 97% 95%,
+            90% 97%, 75% 94%, 60% 98%, 45% 95%, 30% 97%, 15% 93%, 5% 96%,
+            2% 85%, 4% 70%, 1% 55%, 3% 40%, 1% 25%, 4% 12%
+          );
+          
+          /* Rust overlay effect */
+          position: relative;
+          overflow: visible;
+        }
+        
+        .creepy-button-container::before {
+          content: '';
+          position: absolute;
+          top: -5px;
+          left: -5px;
+          right: -5px;
+          bottom: -5px;
+          background: 
+            radial-gradient(circle at 20% 20%, rgba(139, 69, 19, 0.6) 0%, transparent 30%),
+            radial-gradient(circle at 80% 30%, rgba(165, 42, 42, 0.5) 0%, transparent 40%),
+            radial-gradient(circle at 30% 70%, rgba(139, 90, 43, 0.6) 0%, transparent 35%),
+            radial-gradient(circle at 70% 80%, rgba(101, 67, 33, 0.5) 0%, transparent 45%),
+            radial-gradient(circle at 50% 50%, rgba(139, 69, 19, 0.4) 0%, transparent 60%);
+          filter: blur(3px);
+          z-index: -1;
+          animation: rust-spread 10s ease-in-out infinite;
+        }
+        
+        @keyframes rust-spread {
+          0%, 100% { opacity: 0.7; }
+          50% { opacity: 1; }
         }
         
         .cobwebs {
