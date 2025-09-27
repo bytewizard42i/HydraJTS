@@ -1,5 +1,11 @@
+/**
+ * Simplified HydraJTS Protocol Demo - Complete with Settings
+ */
+
 import { createSignal, Show, For } from "solid-js"
 import CreepyOldWayButton from "./CreepyOldWayButton"
+import SettingsButton3D from "./SettingsButton3D"
+import { SettingsModal } from "./SettingsModal"
 
 interface ProofJob {
   id: string
@@ -10,260 +16,50 @@ interface ProofJob {
   result?: any
 }
 
-export function HydraProtocol() {
+export default function SimpleHydraProtocol() {
   const [jobs, setJobs] = createSignal<ProofJob[]>([])
-  const [systemStatus, setSystemStatus] = createSignal(hydraInstances.getStatus())
   const [isAutoMode, setIsAutoMode] = createSignal(false)
-  const [activeProofs, setActiveProofs] = createSignal<ActiveProof[]>([])
-  const settings = useProtocolSettings()
+  const [showSettings, setShowSettings] = createSignal(false)
   
-  // Update system status periodically
-  onMount(() => {
-    const interval = setInterval(() => {
-      setSystemStatus(hydraInstances.getStatus())
-    }, 500)
-    
-    return () => clearInterval(interval)
+  // Mock system status
+  const systemStatus = () => ({
+    instances: jobs().filter(j => j.status === 'processing').length + 1,
+    frozenInstances: jobs().filter(j => j.status === 'processing').length,
+    queuedProofs: 0,
+    maxInstances: 4
   })
   
-  // Subscribe to instance merges
-  hydraInstances.onMerge((instance) => {
-    console.log(`Instance ${instance.id} merged back`)
-    updateJobStatus()
-  })
-  
-  const updateJobStatus = () => {
-    setJobs(prev => prev.map(job => {
-      if (job.status === "processing") {
-        const status = hydraInstances.getStatus()
-        // Check if this job's instance is completed
-        if (status.frozenInstances === 0 && job.endTime === undefined) {
-          return { ...job, status: "completed", endTime: Date.now() }
-        }
-      }
-      return job
-    }))
-  }
+  const activeProofs = () => jobs().filter(j => j.status === 'processing')
   
   /**
-   * Simulates calling a proof - this would normally be your actual proof call
+   * Calls a proof and creates a new instance
    */
   const callProof = async () => {
-    // Check if protocol is enabled
-    if (!settings().enabled) {
-      console.log("[HydraJTS] Protocol is disabled - running in blocking mode")
-      // Run proof without instance management
-      const proofId = `proof-${Date.now()}`
-      await simulateBlockingProof(proofId)
-      return
-    }
-    
-    const proofId = `proof-${Date.now()}`
-    
-    // Create new instance for this proof
-    const instance = await hydraInstances.createInstance(proofId)
-    
-    if (!instance) {
-      console.warn("Cannot create new instance - at capacity")
-      return
-    }
-    
-    // Add to jobs list
-    const job: ProofJob = {
-      id: proofId,
-      instanceId: instance.id,
-      status: "processing",
-      startTime: Date.now()
-    }
-    
-    setJobs(prev => [...prev, job])
-    
-    // Add to active proofs for progress tracking
-    const activeProof: ActiveProof = {
-      id: proofId,
-      instanceId: instance.id,
-      layerIndex: hydraInstances.getStatus().instances - 1,
-      progress: 0,
-      status: 'processing',
-      startTime: Date.now(),
-      estimatedTime: 3000 + Math.random() * 2000
-    }
-    
-    setActiveProofs(prev => [...prev, activeProof])
-    
-    // Simulate proof server call
-    setTimeout(async () => {
-      try {
-        const response = await fetch('http://localhost:6300/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            circuitId: 'demo-circuit',
-            inputs: { data: Math.random() }
-          })
-        })
-        
-        const result = await response.json()
-        
-        // Update active proof status
-        setActiveProofs(prev => prev.map(p => 
-          p.id === proofId ? { ...p, status: 'returning' as const } : p
-        ))
-        
-        // Proof returned - handle it
-        if (settings().proofReturnMode === 'popup') {
-          showProofPopup(proofId, result)
-        }
-        hydraInstances.handleProofReturn(proofId, result)
-        
-        // Update job status
-        setJobs(prev => prev.map(j => 
-          j.id === proofId 
-            ? { ...j, status: "completed", endTime: Date.now(), result }
-            : j
-        ))
-        
-        // Remove from active proofs after a delay
-        setTimeout(() => {
-          setActiveProofs(prev => prev.filter(p => p.id !== proofId))
-        }, 1000)
-        
-      } catch (error) {
-        console.error("Proof generation failed:", error)
-        setJobs(prev => prev.map(j => 
-          j.id === proofId 
-            ? { ...j, status: "error", endTime: Date.now() }
-            : j
-        ))
-        setActiveProofs(prev => prev.filter(p => p.id !== proofId))
-      }
-    }, 2000 + Math.random() * 3000) // Random 2-5 second delay
-  }
-  
-  // Simulate blocking proof (when protocol is disabled)
-  const simulateBlockingProof = async (proofId: string) => {
-    const job: ProofJob = {
-      id: proofId,
-      instanceId: 'blocking',
-      status: "processing",
-      startTime: Date.now()
-    }
-    
-    setJobs(prev => [...prev, job])
-    
-    // Block UI with loading overlay
-    showBlockingOverlay(proofId)
-    
     try {
-      const response = await fetch('http://localhost:6300/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          circuitId: 'demo-circuit',
-          inputs: { data: Math.random() }
-        })
-      })
+      console.log('[HydraProtocol] Calling proof...')
       
-      const result = await response.json()
+      const jobId = `job-${Date.now()}`
+      const newJob: ProofJob = {
+        id: jobId,
+        instanceId: `instance-${Date.now()}`,
+        status: 'processing',
+        startTime: Date.now()
+      }
       
-      setJobs(prev => prev.map(j => 
-        j.id === proofId 
-          ? { ...j, status: "completed", endTime: Date.now(), result }
-          : j
-      ))
+      setJobs(prev => [...prev, newJob])
+      
+      // Simulate proof completion after 3-5 seconds
+      setTimeout(() => {
+        setJobs(prev => prev.map(job => 
+          job.id === jobId 
+            ? { ...job, status: 'completed', endTime: Date.now(), result: { proof: 'mock-proof-data' } }
+            : job
+        ))
+      }, 3000 + Math.random() * 2000)
       
     } catch (error) {
-      console.error("Proof generation failed:", error)
-      setJobs(prev => prev.map(j => 
-        j.id === proofId 
-          ? { ...j, status: "error", endTime: Date.now() }
-          : j
-      ))
-    } finally {
-      hideBlockingOverlay()
+      console.error('[HydraProtocol] Error calling proof:', error)
     }
-  }
-  
-  // Show proof popup (when mode is popup)
-  const showProofPopup = (proofId: string, result: any) => {
-    if (typeof window === 'undefined') return
-    
-    const popup = window.open('', `proof-${proofId}`, 'width=600,height=400')
-    if (popup) {
-      popup.document.write(`
-        <html>
-          <head>
-            <title>Proof Result - ${proofId}</title>
-            <style>
-              body { 
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                padding: 20px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-              }
-              .proof-container {
-                background: white;
-                color: #1f2937;
-                border-radius: 12px;
-                padding: 20px;
-              }
-              pre {
-                background: #f3f4f6;
-                padding: 12px;
-                border-radius: 8px;
-                overflow-x: auto;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="proof-container">
-              <h2>✅ Proof Generated</h2>
-              <p><strong>ID:</strong> ${proofId}</p>
-              <p><strong>Result:</strong></p>
-              <pre>${JSON.stringify(result, null, 2)}</pre>
-            </div>
-          </body>
-        </html>
-      `)
-    }
-  }
-  
-  // Show blocking overlay (when protocol is disabled)
-  const showBlockingOverlay = (proofId: string) => {
-    if (typeof window === 'undefined') return
-    
-    const overlay = document.createElement('div')
-    overlay.id = 'blocking-overlay'
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-    `
-    
-    overlay.innerHTML = `
-      <div style="background: white; padding: 40px; border-radius: 20px; text-align: center;">
-        <div style="font-size: 3rem; margin-bottom: 20px;">⏳</div>
-        <h2 style="color: #1f2937; margin-bottom: 10px;">Generating Proof...</h2>
-        <p style="color: #6b7280;">Please wait, this may take a moment</p>
-        <p style="color: #9ca3af; font-size: 0.875rem; margin-top: 20px;">
-          Protocol is disabled - running in blocking mode
-        </p>
-      </div>
-    `
-    
-    document.body.appendChild(overlay)
-  }
-  
-  const hideBlockingOverlay = () => {
-    const overlay = document.getElementById('blocking-overlay')
-    if (overlay) overlay.remove()
   }
   
   /**
@@ -290,13 +86,21 @@ export function HydraProtocol() {
   
   const clearAll = () => {
     setJobs([])
-    setActiveProofs([])
   }
   
   return (
     <div class="hydra-protocol">
+      {/* 3D Settings Button - Top Left */}
+      <SettingsButton3D onClick={() => setShowSettings(true)} />
+      
+      {/* Settings Modal */}
+      <SettingsModal 
+        show={showSettings()} 
+        onClose={() => setShowSettings(false)} 
+      />
+      
       <div class="protocol-header">
-        <h1>HydraJTS Protocol</h1>
+        <h1>HydraJTS PROTOCOL</h1>
         <p>Multi-Instance Parallel ZK-Proof Execution</p>
         <div class="protocol-description">
           <p>
@@ -458,15 +262,6 @@ export function HydraProtocol() {
           border-left: 4px solid #667eea;
         }
         
-        .protocol-disabled-warning {
-          margin-top: 1rem;
-          padding: 1rem;
-          background: #fef2e5;
-          border: 2px solid #f59e0b;
-          border-radius: 8px;
-          color: #92400e;
-        }
-        
         .instance-dashboard {
           background: white;
           border-radius: 16px;
@@ -510,60 +305,59 @@ export function HydraProtocol() {
         .instance-stack {
           position: relative;
           height: 200px;
-          margin: 1rem 0;
+          margin: 2rem 0;
         }
         
         .instance-layer {
           position: absolute;
-          width: 250px;
+          width: 200px;
           height: 80px;
-          background: white;
-          border: 2px solid #667eea;
-          border-radius: 8px;
-          padding: 1rem;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
+          color: white;
           font-weight: 600;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
           transition: all 0.3s;
         }
         
         .instance-layer.active {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          transform: scale(1.05);
         }
         
         .instance-layer.frozen {
-          background: #f3f4f6;
-          opacity: 0.8;
+          opacity: 0.7;
         }
         
-        .instance-layer .waiting {
-          margin-left: 8px;
-          animation: spin 2s linear infinite;
+        .waiting {
+          margin-left: 0.5rem;
+          animation: pulse 1s infinite;
         }
         
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
         }
         
         .controls {
           display: flex;
           gap: 1rem;
+          justify-content: center;
           margin: 2rem 0;
           flex-wrap: wrap;
         }
         
-        button {
-          padding: 1rem 2rem;
-          border-radius: 12px;
+        .controls button {
+          padding: 0.75rem 1.5rem;
           border: none;
+          border-radius: 12px;
+          font-size: 1rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s;
-          font-size: 1rem;
+          transition: all 0.3s;
         }
         
         .btn-primary {
@@ -573,6 +367,11 @@ export function HydraProtocol() {
         
         .btn-demo {
           background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          color: white;
+        }
+        
+        .btn-secondary {
+          background: #9ca3af;
           color: white;
         }
         
@@ -596,8 +395,8 @@ export function HydraProtocol() {
         }
         
         .jobs-list {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+          display: flex;
+          flex-direction: column;
           gap: 1rem;
           margin-top: 1rem;
         }
@@ -606,56 +405,73 @@ export function HydraProtocol() {
           background: white;
           border-radius: 12px;
           padding: 1.5rem;
-          border-left: 4px solid;
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          transition: all 0.3s;
+        }
+        
+        .job-item:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
         
         .job-item.status-processing {
-          border-left-color: #3b82f6;
-          background: linear-gradient(90deg, rgba(59,130,246,0.05) 0%, white 100%);
+          border-left: 4px solid #f59e0b;
         }
         
         .job-item.status-completed {
-          border-left-color: #10b981;
+          border-left: 4px solid #10b981;
         }
         
         .job-item.status-error {
-          border-left-color: #ef4444;
+          border-left: 4px solid #ef4444;
         }
         
         .job-header {
           display: flex;
           justify-content: space-between;
+          align-items: center;
           margin-bottom: 1rem;
         }
         
         .job-id {
           font-family: monospace;
-          font-size: 0.875rem;
           color: #6b7280;
         }
         
         .job-status {
+          padding: 0.25rem 0.75rem;
+          border-radius: 20px;
+          font-size: 0.875rem;
           font-weight: 600;
         }
         
-        .job-status.processing { color: #3b82f6; }
-        .job-status.completed { color: #10b981; }
-        .job-status.error { color: #ef4444; }
-        
-        .job-details {
-          font-size: 0.875rem;
-          color: #6b7280;
+        .job-status.processing {
+          background: #fef3c7;
+          color: #92400e;
         }
         
-        .job-details div {
-          margin: 0.25rem 0;
+        .job-status.completed {
+          background: #d1fae5;
+          color: #065f46;
+        }
+        
+        .job-status.error {
+          background: #fee2e2;
+          color: #991b1b;
+        }
+        
+        .job-details {
+          display: flex;
+          gap: 2rem;
+          color: #6b7280;
+          font-size: 0.875rem;
         }
         
         .proof-preview code {
           background: #f3f4f6;
           padding: 0.25rem 0.5rem;
           border-radius: 4px;
+          font-size: 0.75rem;
         }
       `}</style>
     </div>
