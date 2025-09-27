@@ -307,7 +307,7 @@ git checkout main               # Main branch
 - **Developer**: John Santi (bytewizard42i)
 - **Email**: hariamoor@proton.me
 - **Repository**: https://github.com/bytewizard42i/HydraJTS
-- **License**: MIT © EnterpriseZK Labs
+- **License**: Apache 2.0 © EnterpriseZK Labs
 - **Roberto's Branch**: `roberto-siesta-mode` (for testing)
 - **Documentation**: Comprehensive guides in repo
 
@@ -491,7 +491,7 @@ netlify deploy --prod
 - **Developer**: John Santi (bytewizard42i)
 - **Email**: hariamoor@proton.me
 - **Repository**: https://github.com/bytewizard42i/HydraJTS
-- **License**: MIT © EnterpriseZK Labs
+- **License**: Apache 2.0 © EnterpriseZK Labs
 
 ---
 

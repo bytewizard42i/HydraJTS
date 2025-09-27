@@ -5,6 +5,7 @@
 **🚀 [Quick Start Guide](./QUICK_START.md)** - Get running in 60 seconds!  
 > **🔧 [Developer Setup](./DEV_SETUP.md)** - Detailed setup instructions
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Built with Bun](https://img.shields.io/badge/Built%20with-Bun-orange)](https://bun.sh)
 [![Powered by Effect](https://img.shields.io/badge/Powered%20by-Effect--TS-blue)](https://effect.website)
 [![SolidStart](https://img.shields.io/badge/UI-SolidStart-2C4F7C)](https://start.solidjs.com)
@@ -251,7 +252,9 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## License
 
-MIT License © EnterpriseZK Labs
+Apache License 2.0 © EnterpriseZK Labs
+
+See [LICENSE](LICENSE) for full license text.
 
 ## Contact
 
