@@ -1,35 +1,33 @@
 # Sound Assets for HydraJTS
 
-## Ominous Hover Sound
+## Ominous Hover Sound - Web Audio API Generated
 
-For the creepy old-way button, we need an ominous sound effect that plays on hover.
+The creepy old-way button now uses **Web Audio API** to generate ominous sounds procedurally, eliminating the need for external audio files.
 
-### Suggested Sound Characteristics:
-- **Duration**: 1-2 seconds
-- **Type**: Low rumble, creaking metal, or horror ambiance
-- **Format**: MP3 or OGG for web compatibility
-- **Volume**: Should be subtle, not jarring
+### Technical Implementation:
+- **Web Audio API**: Browser-native audio synthesis
+- **No external files needed**: All sounds generated in JavaScript
+- **Cross-browser compatible**: Fallback for unsupported browsers
+- **Automatic resume**: Handles suspended audio contexts
 
-### Free Sound Resources:
-1. **Freesound.org** - Search for:
-   - "horror ambiance"
-   - "metal creak"
-   - "ominous drone"
-   - "dark atmosphere"
+### Sound Characteristics:
+- **Duration**: 1.5 seconds
+- **Type**: Industrial sawtooth wave with metallic resonance
+- **Frequency**: 80Hz → 60Hz → 40Hz (descending rumble)
+- **Filter**: Bandpass at 200Hz with high Q factor
+- **Volume**: Quick attack, long decay envelope
 
-2. **Zapsplat.com** - Categories:
-   - Horror > Ambiances
-   - Metal > Creaks and Groans
+### Why Web Audio API?
+1. **No file dependencies** - Works immediately
+2. **Consistent quality** - Same sound on all devices
+3. **Small footprint** - No additional downloads
+4. **Browser native** - Best performance
+5. **Customizable** - Easy to tweak parameters
 
-3. **Recommended filename**: `ominous-hover.mp3`
+### Browser Support:
+- ✅ Chrome/Edge: Full support
+- ✅ Firefox: Full support
+- ✅ Safari: Full support
+- ✅ Mobile: Full support
 
-### Implementation:
-Place the sound file in this directory and it will be loaded by the CreepyOldWayButton component.
-
-### Example sounds to search for:
-- Deep bass rumble
-- Rusty metal groan
-- Distant thunder
-- Horror movie tension builder
-- Creaking door/hinge
-- Industrial machinery failing
+The ominous sound is now completely self-contained and will work immediately when users hover over the creepy button!

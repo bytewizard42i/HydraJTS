@@ -9,21 +9,69 @@ export default function CreepyOldWayButton() {
   const [isClicking, setIsClicking] = createSignal(false)
   const [glitchText, setGlitchText] = createSignal("⚠️ Experience the OLD WAY ⚠️")
   
-  let audioElement: HTMLAudioElement | null = null
+  let audioContext: AudioContext | null = null
+  let isPlaying = false
   
   onMount(() => {
-    // Preload the ominous sound
-    audioElement = new Audio('/media/sounds/ominous-hover.mp3')
-    audioElement.volume = 0.3
-    audioElement.preload = 'auto'
+    // Initialize Web Audio API
+    try {
+      audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    } catch (e) {
+      console.warn('Web Audio API not supported')
+    }
   })
   
+  const createOminousSound = () => {
+    if (!audioContext || isPlaying) return
+    
+    isPlaying = true
+    
+    // Create an ominous, industrial sound
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+    const filter = audioContext.createBiquadFilter()
+    
+    // Connect nodes: oscillator -> filter -> gain -> destination
+    oscillator.connect(filter)
+    filter.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+    
+    // Configure the sound
+    oscillator.frequency.setValueAtTime(80, audioContext.currentTime) // Low rumble
+    oscillator.type = 'sawtooth' // Industrial sound
+    
+    // Filter for metallic resonance
+    filter.type = 'bandpass'
+    filter.frequency.setValueAtTime(200, audioContext.currentTime)
+    filter.Q.setValueAtTime(10, audioContext.currentTime)
+    
+    // Volume envelope
+    gainNode.gain.setValueAtTime(0, audioContext.currentTime)
+    gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.05) // Quick attack - increased volume
+    gainNode.gain.exponentialRampToValueAtTime(0.03, audioContext.currentTime + 1.5) // Long decay - increased tail
+    
+    // Frequency modulation for industrial feel
+    oscillator.frequency.setValueAtTime(80, audioContext.currentTime)
+    oscillator.frequency.linearRampToValueAtTime(60, audioContext.currentTime + 0.5)
+    oscillator.frequency.linearRampToValueAtTime(40, audioContext.currentTime + 1.0)
+    
+    // Start and stop
+    oscillator.start(audioContext.currentTime)
+    oscillator.stop(audioContext.currentTime + 1.5)
+    
+    // Reset playing flag after sound ends
+    setTimeout(() => {
+      isPlaying = false
+    }, 1500)
+  }
+  
   const playOminousSound = () => {
-    if (audioElement) {
-      audioElement.currentTime = 0
-      audioElement.play().catch(() => {
-        // Ignore if autoplay is blocked
+    if (audioContext?.state === 'suspended') {
+      audioContext.resume().then(() => {
+        createOminousSound()
       })
+    } else {
+      createOminousSound()
     }
   }
   
