@@ -1,5 +1,6 @@
 import { createSignal, Show, createEffect, onMount } from "solid-js"
 import { hydraInstances } from "../hydra/instanceManager"
+import { resourceMonitor, type ResourceRecommendation } from "../utils/systemResourceMonitor"
 
 export interface ProtocolSettings {
   enabled: boolean
@@ -8,6 +9,7 @@ export interface ProtocolSettings {
   showProgressIndicators: boolean
   colorCoding: boolean
   autoShowOnStart: boolean
+  autoInstanceMode: boolean
 }
 
 // Default settings
@@ -17,7 +19,8 @@ const DEFAULT_SETTINGS: ProtocolSettings = {
   proofReturnMode: 'direct',
   showProgressIndicators: true,
   colorCoding: true,
-  autoShowOnStart: true
+  autoShowOnStart: true,
+  autoInstanceMode: false
 }
 
 // Load settings from localStorage or use defaults
@@ -42,11 +45,18 @@ export function ProtocolSettings() {
   const [isOpen, setIsOpen] = createSignal(false)
   const [settings, setSettings] = createSignal<ProtocolSettings>(loadSettings())
   const [hasChanges, setHasChanges] = createSignal(false)
+  const [resourceRecommendation, setResourceRecommendation] = createSignal<ResourceRecommendation | null>(null)
+  const [checkingResources, setCheckingResources] = createSignal(false)
   
   // Show on start if configured
   onMount(() => {
     if (settings().autoShowOnStart) {
       setTimeout(() => setIsOpen(true), 500)
+    }
+    
+    // Check resources if auto mode is enabled
+    if (settings().autoInstanceMode) {
+      checkSystemResources()
     }
   })
   
@@ -54,10 +64,44 @@ export function ProtocolSettings() {
   createEffect(() => {
     const current = settings()
     if (hydraInstances) {
-      // Update max instances (resolution layers + 1 for base)
-      hydraInstances.maxInstances = current.enabled ? current.maxResolutionLayers + 1 : 1
+      if (current.autoInstanceMode && resourceRecommendation()) {
+        // Use recommended instances in auto mode
+        hydraInstances.maxInstances = current.enabled ? resourceRecommendation()!.recommendedInstances : 1
+      } else {
+        // Use manual setting
+        hydraInstances.maxInstances = current.enabled ? current.maxResolutionLayers + 1 : 1
+      }
     }
   })
+  
+  // Monitor resources when auto mode is enabled
+  createEffect(() => {
+    if (settings().autoInstanceMode && isOpen()) {
+      const stopMonitoring = resourceMonitor.startMonitoring((recommendation) => {
+        setResourceRecommendation(recommendation)
+        
+        // Show warning if constraints detected
+        if (recommendation.warning) {
+          showNotification(recommendation.warning, 'warning')
+        }
+      })
+      
+      // Cleanup on unmount or when disabled
+      return () => stopMonitoring()
+    }
+  })
+  
+  const checkSystemResources = async () => {
+    setCheckingResources(true)
+    try {
+      const recommendation = await resourceMonitor.getResourceRecommendation(
+        hydraInstances.getStatus().instances
+      )
+      setResourceRecommendation(recommendation)
+    } finally {
+      setCheckingResources(false)
+    }
+  }
   
   const updateSetting = <K extends keyof ProtocolSettings>(
     key: K, 
@@ -80,22 +124,25 @@ export function ProtocolSettings() {
     setHasChanges(true)
   }
   
-  const showNotification = (message: string) => {
+  const showNotification = (message: string, type: 'success' | 'warning' = 'success') => {
     if (typeof window === 'undefined') return
     
     const notification = document.createElement('div')
+    const bgColor = type === 'warning' ? '#f59e0b' : '#10b981'
     notification.style.cssText = `
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      background: #10b981;
+      background: ${bgColor};
       color: white;
       padding: 12px 24px;
       border-radius: 8px;
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       z-index: 10003;
       animation: slideUp 0.3s ease-out;
+      max-width: 500px;
+      text-align: center;
     `
     notification.textContent = message
     document.body.appendChild(notification)
@@ -103,7 +150,7 @@ export function ProtocolSettings() {
     setTimeout(() => {
       notification.style.opacity = '0'
       setTimeout(() => notification.remove(), 300)
-    }, 2000)
+    }, type === 'warning' ? 5000 : 2000)
   }
   
   const getLayerColors = () => {
@@ -159,30 +206,104 @@ export function ProtocolSettings() {
                 </div>
               </div>
               
-              {/* Resolution Layers */}
+              {/* Auto Instance Mode */}
               <div class="setting-group">
                 <label class="setting-label">
-                  <span class="label-text">Resolution Layers</span>
+                  <span class="label-text">Auto Instance Mode</span>
                   <span class="label-description">
-                    Number of additional instances allowed (proof calls)
+                    Automatically adjusts the number of instances based on your system's available resources (CPU, Memory, Performance). 
+                    When enabled, the protocol monitors your system and optimizes for the best performance without overloading your machine.
                   </span>
                 </label>
-                <div class="layer-selector">
-                  {[1, 2, 3].map(num => (
-                    <button
-                      class={`layer-option ${settings().maxResolutionLayers === num ? 'active' : ''}`}
-                      onClick={() => updateSetting('maxResolutionLayers', num)}
-                      disabled={!settings().enabled}
-                    >
-                      <div class="layer-number">{num}</div>
-                      <div class="layer-label">Layer{num > 1 ? 's' : ''}</div>
-                    </button>
-                  ))}
+                <div class="toggle-container">
+                  <button
+                    class={`toggle-option ${!settings().autoInstanceMode ? 'active' : ''}`}
+                    onClick={() => {
+                      updateSetting('autoInstanceMode', false)
+                      setResourceRecommendation(null)
+                    }}
+                  >
+                    🎛️ Manual
+                  </button>
+                  <button
+                    class={`toggle-option ${settings().autoInstanceMode ? 'active' : ''}`}
+                    onClick={() => {
+                      updateSetting('autoInstanceMode', true)
+                      checkSystemResources()
+                    }}
+                  >
+                    🤖 Auto
+                  </button>
                 </div>
-                <div class="layer-preview">
-                  <span>Total Instances: {settings().enabled ? settings().maxResolutionLayers + 1 : 1}</span>
-                </div>
+                
+                <Show when={settings().autoInstanceMode && resourceRecommendation()}>
+                  <div class="resource-status">
+                    <div class="resource-header">
+                      <span>System Analysis</span>
+                      <button 
+                        class="refresh-btn" 
+                        onClick={checkSystemResources}
+                        disabled={checkingResources()}
+                      >
+                        {checkingResources() ? '⏳' : '🔄'}
+                      </button>
+                    </div>
+                    <div class="resource-details">
+                      <div class="resource-item">
+                        <span>Recommended:</span>
+                        <strong>{resourceRecommendation()!.recommendedInstances} instances</strong>
+                      </div>
+                      <div class="resource-item">
+                        <span>Max Safe:</span>
+                        <strong>{resourceRecommendation()!.maxSafeInstances} instances</strong>
+                      </div>
+                      <div class="resource-item">
+                        <span>Status:</span>
+                        <strong class={`capacity-${resourceRecommendation()!.currentCapacity}`}>
+                          {resourceRecommendation()!.currentCapacity}
+                        </strong>
+                      </div>
+                    </div>
+                    <Show when={resourceRecommendation()!.constraints.length > 0}>
+                      <div class="resource-constraints">
+                        <span>Constraints:</span>
+                        <ul>
+                          {resourceRecommendation()!.constraints.map(c => (
+                            <li>{c}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </Show>
+                  </div>
+                </Show>
               </div>
+              
+              {/* Resolution Layers (Manual Mode) */}
+              <Show when={!settings().autoInstanceMode}>
+                <div class="setting-group">
+                  <label class="setting-label">
+                    <span class="label-text">Resolution Layers</span>
+                    <span class="label-description">
+                      Number of additional instances allowed (proof calls)
+                    </span>
+                  </label>
+                  <div class="layer-selector">
+                    {[1, 2, 3].map(num => (
+                      <button
+                        class={`layer-option ${settings().maxResolutionLayers === num ? 'active' : ''}`}
+                        onClick={() => updateSetting('maxResolutionLayers', num)}
+                        disabled={!settings().enabled}
+                      >
+                        <div class="layer-number">{num}</div>
+                        <div class="layer-label">Layer{num > 1 ? 's' : ''}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <div class="layer-preview">
+                    <span>Total Instances: {settings().enabled ? settings().maxResolutionLayers + 1 : 1}</span>
+                  </div>
+                </div>
+              </Show>
               
               {/* Proof Return Mode */}
               <div class="setting-group">
@@ -665,6 +786,100 @@ export function ProtocolSettings() {
         .btn-apply:disabled {
           opacity: 0.5;
           cursor: not-allowed;
+        }
+        
+        /* Auto Instance Mode Styles */
+        .resource-status {
+          margin-top: 16px;
+          padding: 16px;
+          background: #f0f9ff;
+          border: 2px solid #0284c7;
+          border-radius: 12px;
+        }
+        
+        .resource-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+          font-weight: 600;
+          color: #0c4a6e;
+        }
+        
+        .refresh-btn {
+          width: 32px;
+          height: 32px;
+          padding: 0;
+          background: white;
+          border: 1px solid #0284c7;
+          border-radius: 8px;
+          font-size: 1.2rem;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .refresh-btn:hover:not(:disabled) {
+          background: #e0f2fe;
+          transform: rotate(180deg);
+        }
+        
+        .refresh-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        
+        .resource-details {
+          display: grid;
+          gap: 8px;
+        }
+        
+        .resource-item {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 12px;
+          background: white;
+          border-radius: 6px;
+        }
+        
+        .resource-item span {
+          color: #64748b;
+          font-size: 0.875rem;
+        }
+        
+        .resource-item strong {
+          color: #1e293b;
+        }
+        
+        .capacity-optimal { color: #10b981 !important; }
+        .capacity-limited { color: #3b82f6 !important; }
+        .capacity-constrained { color: #f59e0b !important; }
+        .capacity-critical { color: #ef4444 !important; }
+        
+        .resource-constraints {
+          margin-top: 12px;
+          padding: 12px;
+          background: #fef3c7;
+          border: 1px solid #f59e0b;
+          border-radius: 8px;
+        }
+        
+        .resource-constraints > span {
+          font-weight: 600;
+          color: #92400e;
+          display: block;
+          margin-bottom: 8px;
+        }
+        
+        .resource-constraints ul {
+          margin: 0;
+          padding-left: 20px;
+          list-style-type: disc;
+        }
+        
+        .resource-constraints li {
+          color: #b45309;
+          font-size: 0.875rem;
+          margin: 4px 0;
         }
       `}</style>
     </>
