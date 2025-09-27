@@ -229,20 +229,46 @@ export default function SimpleHydraProtocol() {
         
         .protocol-header h1 {
           font-size: 3.5rem;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg,
+            #ffffff 0%,
+            #e0f2fe 10%,
+            #7c3aed 20%,
+            #ec4899 40%,
+            #f59e0b 60%,
+            #10b981 80%,
+            #ffffff 100%);
+          background-size: 400% 400%;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
+          animation: shimmer 3s ease-in-out infinite;
           margin-bottom: 0.5rem;
           font-weight: 900;
           letter-spacing: -0.02em;
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          text-shadow: 
+          text-shadow:
+            0 0 10px rgba(255, 255, 255, 0.5),
+            0 0 20px rgba(124, 58, 237, 0.3),
+            0 0 30px rgba(236, 72, 153, 0.3),
             2px 2px 4px rgba(0, 0, 0, 0.3),
             4px 4px 8px rgba(0, 0, 0, 0.2);
           filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.25));
           text-transform: none !important;
+        }
+
+        @keyframes shimmer {
+          0%, 100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+        
+        @keyframes squid-float {
+          0%, 100% { transform: scaleX(-1) rotate(15deg) translateY(0px); }
+          50% { transform: scaleX(-1) rotate(15deg) translateY(-10px); }
         }
         
         .protocol-header h1::before {
@@ -250,12 +276,7 @@ export default function SimpleHydraProtocol() {
           display: inline-block;
           transform: scaleX(-1) rotate(15deg);
           font-size: 1.2em;
-          animation: float 3s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: scaleX(-1) rotate(15deg) translateY(0px); }
-          50% { transform: scaleX(-1) rotate(15deg) translateY(-10px); }
+          animation: squid-float 3s ease-in-out infinite;
         }
         
         .protocol-description {
